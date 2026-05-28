@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Light theme — soft eggshell. Warmer than pure white, lighter than Anthropic-cream. */
+  :root {
+    --surface: 248 245 238;        /* #F8F5EE — eggshell page background */
+    --surface-elevated: 253 251 245; /* #FDFBF5 — cards: a touch warmer than white */
+    --surface-subtle: 241 237 226;  /* #F1EDE2 — sunken / search-input fields */
+    --ink-primary: 30 27 22;        /* #1E1B16 — warm near-black for body text */
+    --ink-secondary: 92 87 82;      /* #5C5752 — warm medium gray */
+    --ink-muted: 146 139 130;       /* #928B82 — warm light gray */
+    --accent: 194 65 12;            /* #C2410C — burnt sienna, harmonizes with cream */
+    --accent-hover: 154 52 18;      /* #9A3412 */
+    --accent-subtle: 217 119 6;     /* #D97706 — amber sibling for tints/glows */
+    --border: 206 194 173;          /* #CEC2AD — darker warm border for more separation on cream */
+    --border-subtle: 222 213 195;   /* #DED5C3 — still subtle, but visible */
+    --status-applied: 79 92 220;
+    --status-interview: 234 138 12;  /* shifted toward yellow so it stays distinct from the rust accent */
+    --status-offer: 5 130 95;
+    --status-rejected: 198 40 40;
+
+    /* Raw rgb() variables for places that can't use Tailwind's alpha-channel trick
+       (most notably Recharts inline styles). */
+    --c-surface: rgb(248 245 238);
+    --c-surface-elevated: rgb(253 251 245);
+    --c-border: rgb(206 194 173);
+    --c-ink-primary: rgb(30 27 22);
+    --c-ink-secondary: rgb(92 87 82);
+    --c-ink-muted: rgb(146 139 130);
+    --c-accent: rgb(194 65 12);
+  }
+
+  /* Dark theme — same colors that were the previous default. */
+  .dark {
+    --surface: 9 11 18;
+    --surface-elevated: 16 19 30;
+    --surface-subtle: 22 26 40;
+    --ink-primary: 235 238 245;
+    --ink-secondary: 165 172 190;
+    --ink-muted: 110 118 138;
+    --accent: 124 92 255;
+    --accent-hover: 145 116 255;
+    --accent-subtle: 124 92 255;
+    --border: 60 66 86;             /* lighter than before so cards/inputs pop on dark surface */
+    --border-subtle: 46 52 70;
+    --status-applied: 99 102 241;
+    --status-interview: 245 158 11;
+    --status-offer: 16 185 129;
+    --status-rejected: 244 63 94;
+
+    --c-surface: rgb(9 11 18);
+    --c-surface-elevated: rgb(16 19 30);
+    --c-border: rgb(60 66 86);
+    --c-ink-primary: rgb(235 238 245);
+    --c-ink-secondary: rgb(165 172 190);
+    --c-ink-muted: rgb(110 118 138);
+    --c-accent: rgb(124 92 255);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  /* Always reserve space for the vertical scrollbar so the page doesn't shift
+     left/right when switching between tabs whose content height differs. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    font-feature-settings: "ss01", "cv11";
+    /* Subtle warm wash on cream — rust + amber tints harmonize with the eggshell base. */
+    background-image:
+      radial-gradient(at 0% 0%, rgb(194 65 12 / 0.04) 0%, transparent 45%),
+      radial-gradient(at 100% 100%, rgb(217 119 6 / 0.03) 0%, transparent 55%);
+    background-attachment: fixed;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(at 0% 0%, rgb(124 92 255 / 0.08) 0%, transparent 40%),
+      radial-gradient(at 100% 0%, rgb(34 211 238 / 0.06) 0%, transparent 50%);
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.4);
+    color: rgb(var(--ink-primary));
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ink-muted));
+  }
+
+  /* Firefox respects its own thin/none/auto enum instead of explicit widths. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--border)) transparent;
+  }
+
+  /* The native textarea resize handle defaults to high-contrast OS chrome that
+     reads as bright white on dark themes. Replace it with a custom three-line
+     grip drawn with linear-gradient — colors come from CSS vars so it auto-
+     swaps per theme. (WebKit / Chromium / Safari only; Firefox uses its own.) */
+  textarea::-webkit-resizer {
+    background-color: rgb(var(--surface-elevated));
+    background-image: linear-gradient(
+      135deg,
+      transparent 0% 38%,
+      rgb(var(--ink-muted) / 0.7) 38% 44%,
+      transparent 44% 56%,
+      rgb(var(--ink-muted) / 0.7) 56% 62%,
+      transparent 62% 76%,
+      rgb(var(--ink-muted) / 0.7) 76% 82%,
+      transparent 82% 100%
+    );
+    border-bottom-right-radius: 8px;
+  }
+}
+
+@layer utilities {
+  /* Hide the native scrollbar while keeping overflow scrollable. Used for the
+     horizontally-scrollable tab row on mobile. */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* When a Kanban column is the drop target, tint every card inside it so the
+     highlight reads visually even when cards fill the column to the edges. The
+     column sets `--drop-rgb` inline to its status color (indigo/amber/green/red);
+     fallback is --accent for any future droppable that doesn't set the var. */
+  [data-droptarget="true"] [data-card="true"] {
+    background-color: rgb(var(--drop-rgb, var(--accent)) / 0.1);
+    border-color: rgb(var(--drop-rgb, var(--accent)) / 0.4);
+  }
+
+  /* Brand gradient — purple → cyan, matches the logo. Same hue family in both
+     themes; the light-mode values are deeper so they stay legible on cream. */
+  .bg-brand-grad-br {
+    background-image: linear-gradient(to bottom right, rgb(109 78 235), rgb(14 165 233));
+  }
+  .dark .bg-brand-grad-br {
+    background-image: linear-gradient(to bottom right, rgb(124 92 255), rgb(34 211 238));
+  }
+  .bg-brand-grad-r {
+    background-image: linear-gradient(to right, rgb(109 78 235), rgb(14 165 233));
+  }
+  .dark .bg-brand-grad-r {
+    background-image: linear-gradient(to right, rgb(124 92 255), rgb(34 211 238));
+  }
+}
+
+@layer components {
+  .glass {
+    /* Light mode reads brighter — the cream page tint behind the modal was making
+       the surface-elevated card look slightly muddy through the 0.7 opacity. */
+    background: rgb(var(--surface-elevated) / 0.95);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgb(var(--border));
+  }
+
+  .dark .glass {
+    /* Dark mode keeps the more translucent feel — the dark backdrop already
+       supplies enough contrast against the surface. */
+    background: rgb(var(--surface-elevated) / 0.7);
+  }
+
+  .gradient-text {
+    /* Purple → sky-blue, same family as dark mode but slightly deeper so it stays
+       readable on the cream background (the pale dark-mode hues would wash out). */
+    background: linear-gradient(135deg, rgb(109 78 235), rgb(14 165 233));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .dark .gradient-text {
+    background: linear-gradient(135deg, rgb(180 160 255), rgb(120 220 240));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
