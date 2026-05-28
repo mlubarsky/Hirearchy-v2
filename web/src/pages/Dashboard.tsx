@@ -5,13 +5,13 @@ import {
   FileText,
   LayoutGrid,
   LogOut,
+  type LucideIcon,
   Plus,
   Search,
   Settings,
   Trophy,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
@@ -37,6 +37,14 @@ import type { ApplicationStatus, JobApplication } from "../lib/types";
 
 type Tab = "board" | "calendar" | "progress" | "analytics" | "resume";
 
+const TABS: { key: Tab; label: string; Icon: LucideIcon }[] = [
+  { key: "board", label: "Board", Icon: LayoutGrid },
+  { key: "calendar", label: "Calendar", Icon: CalendarDays },
+  { key: "analytics", label: "Analytics", Icon: BarChart3 },
+  { key: "resume", label: "Resume", Icon: FileText },
+  { key: "progress", label: "Progress", Icon: Trophy },
+];
+
 export function Dashboard() {
   useApplyUserTheme();
   const logout = useLogout();
@@ -52,6 +60,7 @@ export function Dashboard() {
   const [addingStatus, setAddingStatus] = useState<ApplicationStatus | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -78,10 +87,30 @@ export function Dashboard() {
           {/* Left cluster — new application + search, board tab only */}
           {tab === "board" && (
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Button onClick={() => setAddingStatus("Applied")} size="sm" aria-label="New application">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">New application</span>
-              </Button>
+              <button
+                onClick={() => setAddingStatus("Applied")}
+                aria-label="New application"
+                className="group inline-flex items-center h-8 px-2 rounded-md bg-accent text-white hover:bg-accent-hover shadow-card text-sm font-medium overflow-hidden transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="max-w-0 opacity-0 group-hover:max-w-[10rem] group-hover:opacity-100 group-hover:ml-2 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out">
+                  New application
+                </span>
+              </button>
+              {/* Mobile: search collapses to an icon next to + that toggles a
+                  full-width search row below the controls. */}
+              <button
+                onClick={() => setSearchOpen((v) => !v)}
+                aria-label="Search applications"
+                aria-expanded={searchOpen}
+                className={`sm:hidden p-2 rounded-lg transition-colors ${
+                  searchOpen
+                    ? "text-ink-primary bg-surface-elevated"
+                    : "text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
+                }`}
+              >
+                <Search className="h-4 w-4" />
+              </button>
               <div className="relative flex-1 max-w-md hidden sm:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none" />
                 <Input
@@ -122,45 +151,40 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Tab row scrolls horizontally on mobile so all 5 tabs are reachable */}
+        {/* Mobile-only full-width search row, revealed by the search icon */}
+        {tab === "board" && searchOpen && (
+          <div className="sm:hidden max-w-7xl mx-auto px-3 pb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none" />
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search applications..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Tab row: icon-only on mobile (tabs spread evenly to fill the width
+            so they never overflow), icon + label at sm+. */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 -mb-px overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1 min-w-max">
-            {(["board", "calendar", "analytics", "resume", "progress"] as const).map((t) => (
+          <div className="flex gap-1 sm:min-w-max">
+            {TABS.map(({ key, label, Icon }) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  tab === t
+                key={key}
+                onClick={() => setTab(key)}
+                aria-label={label}
+                title={label}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  tab === key
                     ? "border-accent text-ink-primary"
                     : "border-transparent text-ink-secondary hover:text-ink-primary"
                 }`}
               >
-                {t === "board" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <LayoutGrid className="h-3.5 w-3.5" />
-                    Board
-                  </span>
-                ) : t === "calendar" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    Calendar
-                  </span>
-                ) : t === "progress" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Trophy className="h-3.5 w-3.5" />
-                    Progress
-                  </span>
-                ) : t === "analytics" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    Analytics
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5" />
-                    Resume
-                  </span>
-                )}
+                <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>

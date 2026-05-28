@@ -34,28 +34,28 @@
 
   /* Dark theme — same colors that were the previous default. */
   .dark {
-    --surface: 9 11 18;
-    --surface-elevated: 16 19 30;
-    --surface-subtle: 22 26 40;
-    --ink-primary: 235 238 245;
-    --ink-secondary: 165 172 190;
-    --ink-muted: 110 118 138;
+    --surface: 15 18 27;
+    --surface-elevated: 27 31 45;
+    --surface-subtle: 35 40 57;
+    --ink-primary: 245 247 252;
+    --ink-secondary: 189 196 213;
+    --ink-muted: 137 145 165;
     --accent: 124 92 255;
     --accent-hover: 145 116 255;
     --accent-subtle: 124 92 255;
-    --border: 60 66 86;             /* lighter than before so cards/inputs pop on dark surface */
-    --border-subtle: 46 52 70;
+    --border: 80 87 110;            /* lighter than before so cards/inputs pop on dark surface */
+    --border-subtle: 62 69 91;
     --status-applied: 99 102 241;
     --status-interview: 245 158 11;
     --status-offer: 16 185 129;
     --status-rejected: 244 63 94;
 
-    --c-surface: rgb(9 11 18);
-    --c-surface-elevated: rgb(16 19 30);
-    --c-border: rgb(60 66 86);
-    --c-ink-primary: rgb(235 238 245);
-    --c-ink-secondary: rgb(165 172 190);
-    --c-ink-muted: rgb(110 118 138);
+    --c-surface: rgb(15 18 27);
+    --c-surface-elevated: rgb(27 31 45);
+    --c-border: rgb(80 87 110);
+    --c-ink-primary: rgb(245 247 252);
+    --c-ink-secondary: rgb(189 196 213);
+    --c-ink-muted: rgb(137 145 165);
     --c-accent: rgb(124 92 255);
   }
 
