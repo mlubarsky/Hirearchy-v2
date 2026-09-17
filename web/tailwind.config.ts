@@ -25,6 +25,7 @@ export default {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
           hover: "rgb(var(--accent-hover) / <alpha-value>)",
           subtle: "rgb(var(--accent-subtle) / <alpha-value>)",
+          fg: "rgb(var(--accent-fg) / <alpha-value>)",
         },
         border: {
           DEFAULT: "rgb(var(--border) / <alpha-value>)",

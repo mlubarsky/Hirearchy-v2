@@ -18,6 +18,9 @@ export function getInitialTheme(): Theme {
 
 export function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle("dark", theme === "dark");
+  // Tab icon follows the theme too (index.html sets it before first paint).
+  const favicon = document.getElementById("favicon") as HTMLLinkElement | null;
+  if (favicon) favicon.href = `/favicon-${theme}.png`;
   try {
     window.localStorage.setItem(CACHE_KEY, theme);
   } catch {

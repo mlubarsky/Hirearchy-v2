@@ -17,10 +17,10 @@ import { apiFetch } from "../../lib/api";
 import type { AnalyticsSummary, ApplicationStatus, FunnelData } from "../../lib/types";
 
 const STATUS_FILL: Record<ApplicationStatus, string> = {
-  Applied: "rgb(99 102 241)",
-  Interview: "rgb(245 158 11)",
-  Offer: "rgb(16 185 129)",
-  Rejected: "rgb(244 63 94)",
+  Applied: "rgb(var(--status-applied))",
+  Interview: "rgb(var(--status-interview))",
+  Offer: "rgb(var(--status-offer))",
+  Rejected: "rgb(var(--status-rejected))",
 };
 
 // Recharts inlines styles, so it can't pick up Tailwind classes — we have to hand it

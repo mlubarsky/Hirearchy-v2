@@ -11,7 +11,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover shadow-card disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-accent text-accent-fg hover:bg-accent-hover shadow-card disabled:opacity-50 disabled:cursor-not-allowed",
   secondary:
     "bg-surface-elevated text-ink-primary border border-border hover:bg-surface-subtle",
   ghost: "bg-transparent text-ink-secondary hover:bg-surface-elevated hover:text-ink-primary",

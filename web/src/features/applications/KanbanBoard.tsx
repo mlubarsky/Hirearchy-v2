@@ -202,10 +202,10 @@ export function KanbanBoard({ applications, onEdit, onView, onAddInColumn }: Pro
   // Empty board: show a centered onboarding hero instead of four tall empty
   // columns (which would push the only call-to-action below the fold). Ghost
   // status chips still hint at the kanban structure. Centers in the viewport on
-  // lg and ~55vh elsewhere.
+  // lg (fills the remaining height) and ~55vh elsewhere.
   if (applications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center min-h-[55vh] lg:h-[calc(100vh-10rem)] animate-fade-in">
+      <div className="flex flex-col items-center justify-center text-center min-h-[55vh] lg:min-h-0 lg:flex-1 animate-fade-in">
         <div className="h-14 w-14 rounded-2xl bg-surface-subtle border border-border-subtle flex items-center justify-center mb-4">
           <LayoutGrid className="h-7 w-7 text-ink-muted" />
         </div>
@@ -241,11 +241,11 @@ export function KanbanBoard({ applications, onEdit, onView, onAddInColumn }: Pro
       }}
       onDragEnd={handleDragEnd}
     >
-      {/* On lg the board is capped to the viewport (minus ~10rem of nav + tabs +
-          main's top/bottom padding) so each column scrolls internally with its
-          header pinned and the page itself never scrolls. Below lg the columns
-          stack/2-up and the page scrolls naturally. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:h-[calc(100vh-10rem)]">
+      {/* On lg the board fills the remaining height of the Dashboard's flex column
+          so each column scrolls internally with its header pinned and the page
+          itself never scrolls. Below lg the columns stack/2-up and the page
+          scrolls naturally. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:flex-1 lg:min-h-0">
         {STATUSES.map((status) => (
           <Column
             key={status}

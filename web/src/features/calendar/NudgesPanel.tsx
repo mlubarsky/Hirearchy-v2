@@ -34,7 +34,7 @@ export function NudgesPanel() {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 flex flex-col min-h-0 lg:h-80">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="h-4 w-4 text-fuchsia-400" />
         <h3 className="text-sm font-semibold">Smart nudges</h3>
@@ -47,7 +47,7 @@ export function NudgesPanel() {
           <span>All caught up. Nothing needs nudging right now.</span>
         </div>
       ) : (
-        <ul className="divide-y divide-border-subtle">
+        <ul className="divide-y divide-border-subtle max-h-[280px] lg:max-h-none lg:flex-1 min-h-0 overflow-y-auto -mr-1 pr-1">
           {nudges.map((n) => (
             <li key={n.id} className="group flex items-start gap-2 py-2.5">
               <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${KIND_DOT[n.kind]}`} />

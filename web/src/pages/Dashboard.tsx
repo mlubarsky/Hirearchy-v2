@@ -10,10 +10,13 @@ import {
   Search,
   Settings,
   Trophy,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
+import { Logo } from "../components/Logo";
 import { Modal } from "../components/Modal";
 import { AnalyticsPanel } from "../features/analytics/AnalyticsPanel";
 import { ApplicationDetailModal } from "../features/applications/ApplicationDetailModal";
@@ -36,6 +39,8 @@ import { useApplyUserTheme } from "../lib/theme";
 import type { ApplicationStatus, JobApplication } from "../lib/types";
 
 type Tab = "board" | "calendar" | "progress" | "analytics" | "resume";
+
+const STALLED_DISMISS_KEY = "hirearchy.stalledDismissed";
 
 const TABS: { key: Tab; label: string; Icon: LucideIcon }[] = [
   { key: "board", label: "Board", Icon: LayoutGrid },
@@ -60,7 +65,22 @@ export function Dashboard() {
   const [addingStatus, setAddingStatus] = useState<ApplicationStatus | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [stalledDismissed, setStalledDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STALLED_DISMISS_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  function dismissStalled() {
+    setStalledDismissed(true);
+    try {
+      localStorage.setItem(STALLED_DISMISS_KEY, "1");
+    } catch {
+      // private mode / quota — state still hides it for the session.
+    }
+  }
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -80,51 +100,43 @@ export function Dashboard() {
   }, [apps]);
 
   return (
-    <div className="min-h-screen">
+    // On lg the board tab is a fixed-viewport flex column: the board takes the
+    // leftover height and its columns scroll internally, so the page never scrolls.
+    <div className={`min-h-screen ${tab === "board" ? "lg:h-screen lg:flex lg:flex-col" : ""}`}>
       <MilestoneWatcher />
-      <nav className="sticky top-0 z-30 border-b border-border-subtle bg-surface/80 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-center gap-2 sm:gap-3">
-          {/* Left cluster — new application + search, board tab only */}
-          {tab === "board" && (
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+      {/* Single header row, identical on every tab: logo · tabs · account icons.
+          Tab-specific controls (e.g. the board's add/search) live in the page
+          content, so the header never has an empty gap. */}
+      <nav className="sticky top-0 z-30 shrink-0 border-b border-border-subtle bg-surface/80 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 flex items-stretch gap-2 sm:gap-6">
+          <div className="hidden sm:flex items-center shrink-0">
+            <Logo size={26} />
+          </div>
+
+          {/* Tabs: icon-only below md (spread evenly on mobile), icon + label at
+              md+. Full row height so the active underline sits on the
+              header's bottom border. */}
+          <div className="flex flex-1 sm:flex-none gap-1 -mb-px min-w-0 overflow-x-auto scrollbar-hide">
+            {TABS.map(({ key, label, Icon }) => (
               <button
-                onClick={() => setAddingStatus("Applied")}
-                aria-label="New application"
-                className="group inline-flex items-center h-8 px-2 rounded-md bg-accent text-white hover:bg-accent-hover shadow-card text-sm font-medium overflow-hidden transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-              >
-                <Plus className="h-4 w-4 shrink-0" />
-                <span className="max-w-0 opacity-0 group-hover:max-w-[10rem] group-hover:opacity-100 group-hover:ml-2 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out">
-                  New application
-                </span>
-              </button>
-              {/* Mobile: search collapses to an icon next to + that toggles a
-                  full-width search row below the controls. */}
-              <button
-                onClick={() => setSearchOpen((v) => !v)}
-                aria-label="Search applications"
-                aria-expanded={searchOpen}
-                className={`sm:hidden p-2 rounded-lg transition-colors ${
-                  searchOpen
-                    ? "text-ink-primary bg-surface-elevated"
-                    : "text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated"
+                key={key}
+                onClick={() => setTab(key)}
+                aria-label={label}
+                title={label}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  tab === key
+                    ? "border-accent text-ink-primary"
+                    : "border-transparent text-ink-secondary hover:text-ink-primary"
                 }`}
               >
-                <Search className="h-4 w-4" />
+                <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden md:inline">{label}</span>
               </button>
-              <div className="relative flex-1 max-w-md hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search applications..."
-                  className="pl-9"
-                />
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
           {/* Right cluster — reminders, profile/settings, logout */}
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setRemindersOpen(true)}
               className="p-2 rounded-lg text-ink-secondary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
@@ -150,55 +162,53 @@ export function Dashboard() {
             </button>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile-only full-width search row, revealed by the search icon */}
-        {tab === "board" && searchOpen && (
-          <div className="sm:hidden max-w-7xl mx-auto px-3 pb-2">
-            <div className="relative">
+      <main
+        className={`w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 ${
+          tab === "board" ? "lg:flex-1 lg:min-h-0 lg:flex lg:flex-col" : ""
+        }`}
+      >
+        {/* Board toolbar — search + new application */}
+        {tab === "board" && (
+          <div className="mb-4 shrink-0 flex items-center gap-2">
+            <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none" />
               <Input
-                autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search applications..."
+                aria-label="Search applications"
                 className="pl-9"
               />
             </div>
+            <Button
+              onClick={() => setAddingStatus("Applied")}
+              aria-label="New application"
+              title="New application"
+              className="ml-auto shrink-0 px-3 sm:px-4"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New application</span>
+            </Button>
           </div>
         )}
 
-        {/* Tab row: icon-only on mobile (tabs spread evenly to fill the width
-            so they never overflow), icon + label at sm+. */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 -mb-px overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1 sm:min-w-max">
-            {TABS.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                aria-label={label}
-                title={label}
-                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  tab === key
-                    ? "border-accent text-ink-primary"
-                    : "border-transparent text-ink-secondary hover:text-ink-primary"
-                }`}
-              >
-                <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        {stalledInterviews > 0 && tab === "board" && (
-          <Card className="mb-4 p-3 border-status-interview/30 bg-status-interview/5 text-sm flex items-start sm:items-center gap-3 flex-wrap sm:flex-nowrap">
+        {stalledInterviews > 0 && tab === "board" && !stalledDismissed && (
+          <Card className="mb-4 shrink-0 p-3 border-status-interview/30 bg-status-interview/5 text-sm flex items-start sm:items-center gap-3 flex-wrap sm:flex-nowrap">
             <div className="h-2 w-2 mt-1.5 sm:mt-0 shrink-0 rounded-full bg-status-interview animate-pulse" />
             <span className="text-ink-primary flex-1">
               {stalledInterviews} interview{stalledInterviews === 1 ? "" : "s"} quiet for 2+ weeks
             </span>
             <span className="text-ink-muted text-xs sm:ml-auto">Consider a follow-up</span>
+            <button
+              onClick={dismissStalled}
+              aria-label="Dismiss notification"
+              title="Dismiss"
+              className="shrink-0 h-5 w-5 inline-flex items-center justify-center rounded-full bg-ink-muted/15 text-ink-muted hover:bg-ink-muted/25 hover:text-ink-primary transition-colors"
+            >
+              <X className="h-3 w-3" strokeWidth={2.5} />
+            </button>
           </Card>
         )}
 

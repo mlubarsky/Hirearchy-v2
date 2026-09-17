@@ -121,7 +121,7 @@ function CelebrationCard({
         <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-accent/10 via-transparent to-status-offer/15" />
 
         <div className="relative shrink-0 h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-brand-grad-br flex items-center justify-center animate-milestone-icon shadow-[0_0_20px_-2px_rgb(var(--accent)/0.5)]">
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-accent-fg" />
           <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-accent animate-milestone-sparkle" />
           <Sparkles
             className="absolute -bottom-1 -left-1 h-2.5 w-2.5 text-status-offer animate-milestone-sparkle"

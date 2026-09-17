@@ -132,101 +132,110 @@ export function ResumeTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-          <div>
-            <div className="text-sm font-semibold inline-flex items-center gap-2">
-              <FileText className="h-4 w-4 text-accent" />
-              Your resume
+      <div>
+        {/* relative + z-10 so the skills tray below reads as tucked underneath */}
+        <Card className="relative z-10 p-4">
+          <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+            <div>
+              <div className="text-sm font-semibold inline-flex items-center gap-2">
+                <FileText className="h-4 w-4 text-accent" />
+                Your resume
+              </div>
+              <div className="text-xs text-ink-muted mt-0.5">
+                We use it to score how well each application matches your background.
+              </div>
             </div>
-            <div className="text-xs text-ink-muted mt-0.5">
-              We use it to score how well each application matches your background.
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInput}
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileInput}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => fileInput.current?.click()}
-              disabled={upload.isPending}
-            >
-              {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              {upload.isPending ? "Reading..." : "Upload PDF"}
-            </Button>
-            {resume && (
-              <Button type="button" variant="danger" size="sm" onClick={handleDelete}>
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileInput}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => fileInput.current?.click()}
+                disabled={upload.isPending}
+              >
+                {upload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                {upload.isPending ? "Reading..." : "Upload PDF"}
               </Button>
-            )}
+              {resume && (
+                <Button type="button" variant="danger" size="sm" onClick={handleDelete}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          className={`rounded-lg border-2 border-dashed transition-colors ${
-            dragOver ? "border-accent bg-accent/5" : "border-border-subtle"
-          }`}
-        >
-          <Textarea
-            id="resume-content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={
-              "Paste the contents of your resume or upload a PDF. You can also just type keywords and skills into the box."
-            }
-            rows={12}
-            maxLength={MAX_CHARS}
-            className="!border-0 !rounded-md focus:!ring-0"
-          />
-        </div>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`rounded-lg border-2 border-dashed transition-colors ${
+              dragOver ? "border-accent bg-accent/5" : "border-border-subtle"
+            }`}
+          >
+            <Textarea
+              id="resume-content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={
+                "Paste the contents of your resume or upload a PDF. You can also just type keywords and skills into the box."
+              }
+              rows={12}
+              maxLength={MAX_CHARS}
+              className="!border-0 !rounded-md focus:!ring-0"
+            />
+          </div>
 
-        <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-          <div className="text-xs text-ink-muted">
-            {content.length.toLocaleString()} / {MAX_CHARS.toLocaleString()} characters
-            {fileName && <> · from {fileName}</>}
-          </div>
-          <div className="flex items-center gap-2">
-            {dirty && (
-              <span className="text-xs text-status-interview inline-flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Unsaved
-              </span>
-            )}
-            <Button size="sm" onClick={handleSave} disabled={!content.trim() || !dirty || save.isPending}>
-              {save.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {save.isPending ? "Saving..." : "Save resume"}
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {resume && skills.length > 0 && (
-        <Card className="p-4">
-          <div className="text-sm font-semibold mb-3 inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent" />
-            Skills detected ({skills.length})
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {skills.map((s) => (
-              <SkillChip key={s} label={s} />
-            ))}
+          <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+            <div className="text-xs text-ink-muted">
+              {content.length.toLocaleString()} / {MAX_CHARS.toLocaleString()} characters
+              {fileName && <> · from {fileName}</>}
+            </div>
+            <div className="flex items-center gap-2">
+              {dirty && (
+                <span className="text-xs text-status-interview inline-flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Unsaved
+                </span>
+              )}
+              <Button size="sm" onClick={handleSave} disabled={!content.trim() || !dirty || save.isPending}>
+                {save.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {save.isPending ? "Saving..." : "Save resume"}
+              </Button>
+            </div>
           </div>
         </Card>
-      )}
+
+        {/* Skills tray — stitched to the bottom of the resume card: inset a little,
+            recessed page-colored background, no top border, and a dashed seam. */}
+        {resume && skills.length > 0 && (
+          <div className="relative mx-3 sm:mx-5 -mt-px rounded-b-xl border border-t-0 border-border-subtle bg-surface px-4 pt-3.5 pb-3">
+            <div
+              aria-hidden
+              className="absolute inset-x-3 top-0 border-t border-dashed border-border"
+            />
+            <div className="text-xs font-medium text-ink-secondary mb-2.5 inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              Skills detected ({skills.length})
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map((s) => (
+                <SkillChip key={s} label={s} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {resume && (
         <Card className="p-4">

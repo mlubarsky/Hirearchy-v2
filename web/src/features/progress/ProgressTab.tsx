@@ -92,7 +92,7 @@ function MilestoneCard({ m, unlocked }: { m: Milestone; unlocked: boolean }) {
     >
       <div
         className={`shrink-0 h-10 w-10 rounded-lg flex items-center justify-center ${
-          unlocked ? "bg-brand-grad-br text-white" : "bg-surface-subtle text-ink-muted"
+          unlocked ? "bg-brand-grad-br text-accent-fg" : "bg-surface-subtle text-ink-muted"
         }`}
       >
         {unlocked ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}

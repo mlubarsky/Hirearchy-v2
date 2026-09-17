@@ -14,6 +14,7 @@
     --accent: 194 65 12;            /* #C2410C — burnt sienna, harmonizes with cream */
     --accent-hover: 154 52 18;      /* #9A3412 */
     --accent-subtle: 217 119 6;     /* #D97706 — amber sibling for tints/glows */
+    --accent-fg: 255 255 255;       /* text on accent fills */
     --border: 206 194 173;          /* #CEC2AD — darker warm border for more separation on cream */
     --border-subtle: 222 213 195;   /* #DED5C3 — still subtle, but visible */
     --status-applied: 79 92 220;
@@ -32,31 +33,35 @@
     --c-accent: rgb(194 65 12);
   }
 
-  /* Dark theme — same colors that were the previous default. */
+  /* Dark theme — neutral graphite. Pure-neutral layers (depth comes from lighter
+     surfaces, not glows) + one muted blue accent. Statuses are desaturated so ~90%
+     of the UI stays neutral; "Applied" is a soft slate so it doesn't compete with
+     the accent. */
   .dark {
-    --surface: 15 18 27;
-    --surface-elevated: 27 31 45;
-    --surface-subtle: 35 40 57;
-    --ink-primary: 245 247 252;
-    --ink-secondary: 189 196 213;
-    --ink-muted: 137 145 165;
-    --accent: 124 92 255;
-    --accent-hover: 145 116 255;
-    --accent-subtle: 124 92 255;
-    --border: 80 87 110;            /* lighter than before so cards/inputs pop on dark surface */
-    --border-subtle: 62 69 91;
-    --status-applied: 99 102 241;
-    --status-interview: 245 158 11;
-    --status-offer: 16 185 129;
-    --status-rejected: 244 63 94;
+    --surface: 17 17 17;            /* #111111 — page background (never pure black) */
+    --surface-elevated: 28 28 28;   /* #1C1C1C — cards, modals, inputs */
+    --surface-subtle: 37 37 37;     /* #252525 — hover / raised chips */
+    --ink-primary: 232 232 232;     /* #E8E8E8 */
+    --ink-secondary: 168 168 168;   /* #A8A8A8 */
+    --ink-muted: 138 138 138;       /* #8A8A8A — still ≥4.5:1 on cards */
+    --accent: 91 141 239;           /* #5B8DEF — muted blue */
+    --accent-hover: 116 160 244;    /* #74A0F4 */
+    --accent-subtle: 111 168 199;   /* #6FA8C7 — steel-sky sibling for tints/glows */
+    --accent-fg: 10 14 22;          /* dark text on the light accent (~6:1) */
+    --border: 51 51 51;             /* #333333 */
+    --border-subtle: 40 40 40;      /* #282828 */
+    --status-applied: 143 163 196;  /* #8FA3C4 — soft slate */
+    --status-interview: 214 168 79; /* #D6A84F — muted amber */
+    --status-offer: 95 184 138;     /* #5FB88A — muted green */
+    --status-rejected: 217 101 101; /* #D96565 — muted red */
 
-    --c-surface: rgb(15 18 27);
-    --c-surface-elevated: rgb(27 31 45);
-    --c-border: rgb(80 87 110);
-    --c-ink-primary: rgb(245 247 252);
-    --c-ink-secondary: rgb(189 196 213);
-    --c-ink-muted: rgb(137 145 165);
-    --c-accent: rgb(124 92 255);
+    --c-surface: rgb(17 17 17);
+    --c-surface-elevated: rgb(28 28 28);
+    --c-border: rgb(51 51 51);
+    --c-ink-primary: rgb(232 232 232);
+    --c-ink-secondary: rgb(168 168 168);
+    --c-ink-muted: rgb(138 138 138);
+    --c-accent: rgb(91 141 239);
   }
 
   html,
@@ -83,10 +88,9 @@
       color 200ms ease;
   }
 
+  /* Dark mode: flat background — layered surfaces carry the depth, no glow blobs. */
   .dark body {
-    background-image:
-      radial-gradient(at 0% 0%, rgb(124 92 255 / 0.08) 0%, transparent 40%),
-      radial-gradient(at 100% 0%, rgb(34 211 238 / 0.06) 0%, transparent 50%);
+    background-image: none;
   }
 
   ::selection {
@@ -158,19 +162,19 @@
     border-color: rgb(var(--drop-rgb, var(--accent)) / 0.4);
   }
 
-  /* Brand gradient — purple → cyan, matches the logo. Same hue family in both
-     themes; the light-mode values are deeper so they stay legible on cream. */
+  /* Brand fill (logo, milestone badges, progress bar) — a quiet tonal gradient
+     of each theme's accent: burnt sienna on cream, muted blue on graphite. */
   .bg-brand-grad-br {
-    background-image: linear-gradient(to bottom right, rgb(109 78 235), rgb(14 165 233));
+    background-image: linear-gradient(to bottom right, rgb(210 85 26), rgb(154 52 18));
   }
   .dark .bg-brand-grad-br {
-    background-image: linear-gradient(to bottom right, rgb(124 92 255), rgb(34 211 238));
+    background-image: linear-gradient(to bottom right, rgb(116 160 244), rgb(74 124 222));
   }
   .bg-brand-grad-r {
-    background-image: linear-gradient(to right, rgb(109 78 235), rgb(14 165 233));
+    background-image: linear-gradient(to right, rgb(154 52 18), rgb(210 85 26));
   }
   .dark .bg-brand-grad-r {
-    background-image: linear-gradient(to right, rgb(124 92 255), rgb(34 211 238));
+    background-image: linear-gradient(to right, rgb(74 124 222), rgb(116 160 244));
   }
 }
 
@@ -185,15 +189,16 @@
   }
 
   .dark .glass {
-    /* Dark mode keeps the more translucent feel — the dark backdrop already
-       supplies enough contrast against the surface. */
-    background: rgb(var(--surface-elevated) / 0.7);
+    /* Dark mode is solid, not frosted — an opaque elevated surface reads more
+       like a desktop app than a glassmorphism landing page. */
+    background: rgb(var(--surface-elevated));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .gradient-text {
-    /* Purple → sky-blue, same family as dark mode but slightly deeper so it stays
-       readable on the cream background (the pale dark-mode hues would wash out). */
-    background: linear-gradient(135deg, rgb(109 78 235), rgb(14 165 233));
+    /* Light mode: burnt sienna, matching the logo (≥3:1 on cream at heading size). */
+    background: linear-gradient(135deg, rgb(210 85 26), rgb(154 52 18));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -201,9 +206,9 @@
   }
 
   .dark .gradient-text {
-    background: linear-gradient(135deg, rgb(180 160 255), rgb(120 220 240));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /* Dark mode: solid off-white instead of a pastel gradient. */
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: rgb(var(--ink-primary));
   }
 }

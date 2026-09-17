@@ -136,7 +136,7 @@ export function CalendarView() {
                   <span
                     className={
                       isToday
-                        ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white text-[10px]"
+                        ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-fg text-[10px]"
                         : ""
                     }
                   >
@@ -193,8 +193,8 @@ export function CalendarView() {
         </div>
       </Card>
 
-      <div className="space-y-4">
-        <Card className="p-4">
+      <div className="flex flex-col gap-4">
+        <Card className="p-4 flex flex-col min-h-0 lg:h-80">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold">
               {selectedDate.toLocaleDateString(undefined, {
@@ -215,7 +215,7 @@ export function CalendarView() {
           {selectedEvents.length === 0 ? (
             <p className="text-xs text-ink-muted py-2">Nothing scheduled.</p>
           ) : (
-            <ul className="space-y-2 max-h-[360px] overflow-y-auto -mr-1 pr-1">
+            <ul className="space-y-2 max-h-[280px] lg:max-h-none lg:flex-1 min-h-0 overflow-y-auto -mr-1 pr-1">
               {selectedEvents.map((e) => (
                 <li key={e.id}>
                   <button

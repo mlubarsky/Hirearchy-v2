@@ -172,7 +172,7 @@ export function RemindersPanel() {
         />
         <button
           onClick={handleQuickAdd}
-          className="shrink-0 h-10 w-10 rounded-lg bg-accent text-white hover:bg-accent-hover transition-colors flex items-center justify-center"
+          className="shrink-0 h-10 w-10 rounded-lg bg-accent text-accent-fg hover:bg-accent-hover transition-colors flex items-center justify-center"
           aria-label="Add reminder"
         >
           <Plus className="h-4 w-4" />
