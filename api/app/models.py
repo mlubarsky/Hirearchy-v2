@@ -40,6 +40,17 @@ class JobApplicationPatch(BaseModel):
     ai_summary: Optional[str] = None
 
 
+class StatusChange(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=_alias)
+
+    status: ApplicationStatus
+    at: Optional[datetime] = None  # None = happened before the timeline existed, date unknown
+
+
+class StatusChangeDatePatch(BaseModel):
+    at: datetime
+
+
 class JobApplicationOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=_alias)
 
@@ -54,6 +65,7 @@ class JobApplicationOut(BaseModel):
     notes: Optional[str] = None
     match_score: Optional[int] = None
     ai_summary: Optional[str] = None
+    status_history: list[StatusChange] = []
     created_at: datetime
 
 
@@ -66,6 +78,9 @@ class ReminderIn(BaseModel):
     end_at: Optional[datetime] = None
     notes: Optional[str] = None
     application_id: Optional[str] = None
+    # Set when the reminder was created from a smart nudge; each nudge can be
+    # added once (enforced by a unique index).
+    nudge_id: Optional[str] = None
 
 
 class ReminderPatch(BaseModel):
@@ -94,6 +109,7 @@ class ReminderOut(BaseModel):
     completed: bool
     order_index: int
     application_id: Optional[str] = None
+    nudge_id: Optional[str] = None
     created_at: datetime
 
 

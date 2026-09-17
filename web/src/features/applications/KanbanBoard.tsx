@@ -1,7 +1,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useDroppable,
   useSensor,
@@ -14,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { LayoutGrid, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
+import { useToast } from "../../components/Toast";
 import { STATUS_DOT } from "../../lib/format";
 import {
   STATUSES,
@@ -53,6 +55,13 @@ const STATUS_DROP_VAR: Record<ApplicationStatus, string> = {
   Rejected: "var(--status-rejected)",
 };
 
+const STATUS_TEXT: Record<ApplicationStatus, string> = {
+  Applied: "text-status-applied",
+  Interview: "text-status-interview",
+  Offer: "text-status-offer",
+  Rejected: "text-status-rejected",
+};
+
 const COLUMN_META: Record<ApplicationStatus, { hint: string; tint: string }> = {
   Applied: { hint: "Reaching out", tint: "from-status-applied/20" },
   Interview: { hint: "In the room", tint: "from-status-interview/20" },
@@ -64,17 +73,22 @@ function Column({
   status,
   applications,
   activeDropStatus,
+  hiddenOnMobile,
   onEdit,
   onDelete,
   onView,
+  onMove,
   onAdd,
 }: {
   status: ApplicationStatus;
   applications: JobApplication[];
   activeDropStatus: ApplicationStatus | null;
+  /** Below lg, one column is shown at a time (picked with the status tabs). */
+  hiddenOnMobile: boolean;
   onEdit: (app: JobApplication) => void;
   onDelete: (app: JobApplication) => void;
   onView: (app: JobApplication) => void;
+  onMove: (app: JobApplication, status: ApplicationStatus) => void;
   onAdd: () => void;
 }) {
   const { setNodeRef } = useDroppable({
@@ -98,14 +112,14 @@ function Column({
           ? ({ "--drop-rgb": STATUS_DROP_VAR[status] } as React.CSSProperties)
           : undefined
       }
-      className={`flex flex-col rounded-xl border transition-colors min-h-[300px] lg:min-h-0 lg:h-full ${
+      className={`${hiddenOnMobile ? "hidden lg:flex" : "flex"} flex-col rounded-xl border transition-colors max-lg:border-0 max-lg:bg-transparent lg:min-h-0 lg:h-full ${
         isOver
           ? COLUMN_OVER_CLASSES[status]
           : "border-border-subtle bg-surface-elevated/40"
       }`}
     >
       <div
-        className={`flex items-center justify-between px-3 py-2.5 border-b border-border-subtle bg-gradient-to-b ${meta.tint} to-transparent rounded-t-xl`}
+        className={`hidden lg:flex items-center justify-between px-3 py-2.5 border-b border-border-subtle bg-gradient-to-b ${meta.tint} to-transparent rounded-t-xl`}
       >
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm">{status}</span>
@@ -121,9 +135,14 @@ function Column({
       </div>
 
       <SortableContext items={applications.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 min-h-0 p-2 space-y-2 overflow-y-auto">
+        {/* Tabbed (below lg): cards in a grid — 1 column on phones, 2 on tablets.
+            Board (lg+): a scrolling stack inside the column. */}
+        <div className="flex-1 min-h-0 max-lg:grid max-lg:gap-2 sm:max-lg:grid-cols-2 max-lg:items-start lg:p-2 lg:space-y-2 overflow-y-auto">
           {applications.length === 0 ? (
-            <div className="text-center text-xs text-ink-muted py-8 italic">{meta.hint}</div>
+            <div className="col-span-full text-center text-xs text-ink-muted py-8 italic">
+              <span className="lg:hidden">No applications in {status} yet</span>
+              <span className="hidden lg:inline">{meta.hint}</span>
+            </div>
           ) : (
             applications.map((app) => (
               <ApplicationCard
@@ -132,6 +151,7 @@ function Column({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onView={onView}
+                onMove={onMove}
               />
             ))
           )}
@@ -141,12 +161,60 @@ function Column({
   );
 }
 
+/** Status tab for the narrow (below lg) layout. Also a drop target, so a long-pressed card can be
+ *  dragged onto another status. */
+function StatusTab({
+  status,
+  count,
+  selected,
+  isOver,
+  onSelect,
+}: {
+  status: ApplicationStatus;
+  count: number;
+  selected: boolean;
+  isOver: boolean;
+  onSelect: () => void;
+}) {
+  const { setNodeRef } = useDroppable({
+    id: `tab-${status}`,
+    data: { type: "column", status },
+  });
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onSelect}
+      className={`flex-1 min-w-0 inline-flex items-center justify-center gap-1 h-8 px-1 rounded-md text-xs font-medium transition-colors ${
+        isOver
+          ? "bg-surface-subtle text-ink-primary ring-2 ring-accent/60"
+          : selected
+            ? "bg-surface-elevated dark:bg-border text-ink-primary shadow-card"
+            : "text-ink-secondary hover:text-ink-primary"
+      }`}
+    >
+      <span className="truncate">{status}</span>
+      {/* The count carries the status color (no dot — "Interview" needs the room). */}
+      <span className={`tabular-nums ${STATUS_TEXT[status]}`}>{count}</span>
+    </button>
+  );
+}
+
 export function KanbanBoard({ applications, onEdit, onView, onAddInColumn }: Props) {
   const update = useUpdateApplication();
   const remove = useDeleteApplication();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDropStatus, setActiveDropStatus] = useState<ApplicationStatus | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const [mobileStatus, setMobileStatus] = useState<ApplicationStatus>("Applied");
+  const toast = useToast();
+  // Mouse: drag after a small move. Touch: drag only after a long press, so a
+  // swipe that starts on a card still scrolls the page.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   const grouped = useMemo(() => {
     const map: Record<ApplicationStatus, JobApplication[]> = {
@@ -190,7 +258,15 @@ export function KanbanBoard({ applications, onEdit, onView, onAddInColumn }: Pro
     else if (overData?.type === "application" && overData.app) newStatus = overData.app.status;
 
     if (newStatus && newStatus !== activeApp.status) {
-      update.mutate({ id: activeApp.id, patch: { status: newStatus } });
+      moveTo(activeApp, newStatus);
+    }
+  }
+
+  function moveTo(app: JobApplication, status: ApplicationStatus) {
+    update.mutate({ id: app.id, patch: { status } });
+    // In the tabbed layout the card leaves the visible tab, so confirm where it went.
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      toast.show({ variant: "success", title: `Moved ${app.companyName} to ${status}` });
     }
   }
 
@@ -243,18 +319,42 @@ export function KanbanBoard({ applications, onEdit, onView, onAddInColumn }: Pro
     >
       {/* On lg the board fills the remaining height of the Dashboard's flex column
           so each column scrolls internally with its header pinned and the page
-          itself never scrolls. Below lg the columns stack/2-up and the page
-          scrolls naturally. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:flex-1 lg:min-h-0">
+          itself never scrolls. Below lg only the selected tab's column renders
+          and the page scrolls naturally. */}
+      {/* Below lg (until all 4 columns fit): segmented status tabs, one column
+          visible at a time. Sticky just under the 3.5rem app header; the negative
+          margins match <main>'s side padding so the bar spans edge to edge. */}
+      <div
+        role="tablist"
+        aria-label="Application status"
+        className="lg:hidden sticky top-14 z-20 -mx-3 px-3 sm:-mx-6 sm:px-6 mb-3 py-2 bg-surface border-b border-border-subtle"
+      >
+        <div className="flex gap-1 p-1 rounded-lg bg-surface-subtle/60 border border-border-subtle">
+          {STATUSES.map((status) => (
+            <StatusTab
+              key={status}
+              status={status}
+              count={grouped[status].length}
+              selected={mobileStatus === status}
+              isOver={activeId !== null && activeDropStatus === status}
+              onSelect={() => setMobileStatus(status)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 lg:flex-1 lg:min-h-0">
         {STATUSES.map((status) => (
           <Column
             key={status}
             status={status}
             applications={grouped[status]}
             activeDropStatus={activeDropStatus}
+            hiddenOnMobile={status !== mobileStatus}
             onEdit={onEdit}
             onDelete={handleDelete}
             onView={onView}
+            onMove={moveTo}
             onAdd={() => onAddInColumn(status)}
           />
         ))}

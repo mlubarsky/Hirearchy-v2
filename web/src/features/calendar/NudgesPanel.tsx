@@ -1,6 +1,7 @@
 import { Lightbulb, Plus, Sparkles } from "lucide-react";
 import { Card } from "../../components/Card";
 import { useToast } from "../../components/Toast";
+import { ApiError } from "../../lib/api";
 import { KIND_DOT, formatDateTime } from "../../lib/format";
 import type { Nudge } from "../../lib/types";
 import { useMaterializeNudge, useNudges } from "./useCalendar";
@@ -20,6 +21,10 @@ export function NudgesPanel() {
         });
       },
       onError: (err) => {
+        if (err instanceof ApiError && err.status === 409) {
+          toast.show({ variant: "info", title: "Already in your reminders" });
+          return;
+        }
         toast.show({
           variant: "error",
           title: "Couldn't add reminder",
@@ -36,7 +41,7 @@ export function NudgesPanel() {
   return (
     <Card className="p-4 flex flex-col min-h-0 lg:h-80">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4 text-fuchsia-400" />
+        <Sparkles className="h-4 w-4 text-accent" />
         <h3 className="text-sm font-semibold">Smart nudges</h3>
         <span className="text-xs text-ink-muted">{nudges.length}</span>
       </div>
@@ -60,7 +65,6 @@ export function NudgesPanel() {
               </div>
               <button
                 onClick={() => handleAdd(n)}
-                disabled={materialize.isPending}
                 className="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded text-ink-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
                 title="Add to reminders"
                 aria-label="Add to reminders"

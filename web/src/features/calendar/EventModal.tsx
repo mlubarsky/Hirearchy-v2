@@ -31,7 +31,17 @@ function localToIso(local: string): string {
   return new Date(local).toISOString();
 }
 
-export function EventModal({ open, onClose, event, defaultDate, applications }: Props) {
+/**
+ * Mounts the form only while open, keyed by the event, so every open starts from
+ * that event's values. (The form seeds its fields from props once, on mount — a
+ * modal that stayed mounted kept showing whatever it was first opened with.)
+ */
+export function EventModal(props: Props) {
+  if (!props.open) return null;
+  return <EventModalForm key={props.event?.id ?? "new"} {...props} />;
+}
+
+function EventModalForm({ open, onClose, event, defaultDate, applications }: Props) {
   const create = useCreateReminder();
   const update = useUpdateReminder();
   const remove = useDeleteReminder();
@@ -39,11 +49,16 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
   const isApplicationEvent = event?.source === "application";
   const editingReminderId = event?.source === "reminder" ? event.id : null;
 
-  const initialStart = event?.start
-    ? new Date(event.start)
+  // Existing reminders may be undated (quick reminders): start "" = no date, and
+  // the date stays optional when editing. New events always need a date.
+  const initialStart = event
+    ? event.start
+      ? new Date(event.start)
+      : null
     : defaultDate
-      ? new Date(defaultDate.setHours(10, 0, 0, 0))
+      ? new Date(new Date(defaultDate).setHours(10, 0, 0, 0))
       : new Date();
+  const dateRequired = !editingReminderId;
 
   const [title, setTitle] = useState(event?.title ?? "");
   const [kind, setKind] = useState<ReminderKind>(
@@ -51,7 +66,7 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
       ? (event.kind as ReminderKind)
       : "interview",
   );
-  const [start, setStart] = useState(toDateTimeLocal(initialStart));
+  const [start, setStart] = useState(initialStart ? toDateTimeLocal(initialStart) : "");
   const [end, setEnd] = useState(event?.end ? toDateTimeLocal(new Date(event.end)) : "");
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [applicationId, setApplicationId] = useState(event?.applicationId ?? "");
@@ -67,7 +82,7 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
     const payload = {
       text: title.trim(),
       kind,
-      dueAt: localToIso(start),
+      dueAt: start ? localToIso(start) : null,
       endAt: end ? localToIso(end) : null,
       notes: notes.trim() || null,
       applicationId: applicationId || null,
@@ -79,7 +94,7 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
         await create.mutateAsync({
           text: payload.text,
           kind: payload.kind,
-          dueAt: payload.dueAt,
+          dueAt: payload.dueAt ?? undefined,
           endAt: payload.endAt ?? undefined,
           notes: payload.notes ?? undefined,
           applicationId: payload.applicationId ?? undefined,
@@ -131,7 +146,11 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editingReminderId ? "Edit event" : "New event"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editingReminderId ? (event?.start ? "Edit event" : "Edit reminder") : "New event"}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="event-title">Title</Label>
@@ -175,13 +194,13 @@ export function EventModal({ open, onClose, event, defaultDate, applications }: 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="event-start">Start</Label>
+            <Label htmlFor="event-start">{dateRequired ? "Start" : "Date (optional)"}</Label>
             <Input
               id="event-start"
               type="datetime-local"
               value={start}
               onChange={(e) => setStart(e.target.value)}
-              required
+              required={dateRequired}
             />
           </div>
           <div>

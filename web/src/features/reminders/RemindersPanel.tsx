@@ -28,14 +28,13 @@ import {
   useUpdateReminder,
 } from "./useReminders";
 
-function reminderToEvent(r: Reminder): CalendarEvent | null {
-  if (!r.dueAt) return null;
+function reminderToEvent(r: Reminder): CalendarEvent {
   return {
     id: r.id,
     source: "reminder",
     kind: r.kind,
     title: r.text,
-    start: r.dueAt,
+    start: r.dueAt ?? "", // quick reminders have no date; the modal treats "" as undated
     end: r.endAt ?? null,
     notes: r.notes ?? null,
     applicationId: r.applicationId ?? null,

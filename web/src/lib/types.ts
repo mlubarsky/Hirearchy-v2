@@ -7,6 +7,12 @@ export const STATUSES: ApplicationStatus[] = [
   "Rejected",
 ];
 
+export type StatusChange = {
+  status: ApplicationStatus;
+  /** null = happened before the timeline existed; date unknown. */
+  at: string | null;
+};
+
 export type JobApplication = {
   id: string;
   ownerId: string;
@@ -19,6 +25,8 @@ export type JobApplication = {
   notes?: string | null;
   matchScore?: number | null;
   aiSummary?: string | null;
+  /** Oldest first. */
+  statusHistory: StatusChange[];
   createdAt: string;
 };
 
@@ -61,6 +69,7 @@ export type Reminder = {
   completed: boolean;
   orderIndex: number;
   applicationId?: string | null;
+  nudgeId?: string | null;
   createdAt: string;
 };
 
@@ -90,6 +99,14 @@ export type AnalyticsSummary = {
   byStatus: { status: ApplicationStatus; count: number }[];
   responseRate: number;
   weekly: { weekEnding: string; count: number }[];
+  timing: {
+    avgDaysToResponse: number | null;
+    responsesMeasured: number;
+    avgDaysInterviewToDecision: number | null;
+    decisionsMeasured: number;
+    noResponseCount: number;
+    noResponseAfterDays: number;
+  };
 };
 
 export type FunnelData = {

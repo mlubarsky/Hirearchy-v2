@@ -50,6 +50,16 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
   );
 }
 
+function formatDays(days: number | null): string {
+  if (days === null) return "—";
+  return `${days} ${days === 1 ? "day" : "days"}`;
+}
+
+function measuredHint(count: number, noun: string): string {
+  if (count === 0) return `no dated ${noun}s yet`;
+  return `avg across ${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 const FUNNEL_TINT = [
   { fill: "from-status-applied/30 to-status-applied/10", text: "text-status-applied" },
   { fill: "from-status-interview/30 to-status-interview/10", text: "text-status-interview" },
@@ -140,6 +150,25 @@ export function AnalyticsPanel() {
         <Stat label="Interviews" value={interviewCount} />
         <Stat label="Offers" value={offerCount} />
         <Stat label="Response rate" value={`${s.responseRate}%`} />
+      </div>
+
+      {/* Timing — from each application's status timeline */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Stat
+          label="Time to response"
+          value={formatDays(s.timing.avgDaysToResponse)}
+          hint={measuredHint(s.timing.responsesMeasured, "response")}
+        />
+        <Stat
+          label="Interview → decision"
+          value={formatDays(s.timing.avgDaysInterviewToDecision)}
+          hint={measuredHint(s.timing.decisionsMeasured, "decision")}
+        />
+        <Stat
+          label="No response"
+          value={s.timing.noResponseCount}
+          hint={`still Applied after ${s.timing.noResponseAfterDays}+ days`}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

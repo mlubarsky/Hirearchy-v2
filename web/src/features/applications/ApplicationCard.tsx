@@ -4,18 +4,27 @@ import { ExternalLink, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { StatusBadge } from "../../components/Badge";
 import { useMatches } from "../resume/useResume";
-import { formatRelativeDate } from "../../lib/format";
+import { STATUS_DOT, formatRelativeDate } from "../../lib/format";
 import { safeHttpUrl } from "../../lib/url";
-import type { JobApplication } from "../../lib/types";
+import { STATUSES, type ApplicationStatus, type JobApplication } from "../../lib/types";
 
 type Props = {
   app: JobApplication;
   onEdit: (app: JobApplication) => void;
   onDelete: (app: JobApplication) => void;
   onView?: (app: JobApplication) => void;
+  onMove?: (app: JobApplication, status: ApplicationStatus) => void;
 };
 
-export function ApplicationCard({ app, onEdit, onDelete, onView }: Props) {
+// dnd-kit starts drags from mouse/touch events on the card, so interactive
+// children must stop those (not just pointerdown) to stay clickable.
+const stopDrag = {
+  onPointerDown: (e: React.SyntheticEvent) => e.stopPropagation(),
+  onMouseDown: (e: React.SyntheticEvent) => e.stopPropagation(),
+  onTouchStart: (e: React.SyntheticEvent) => e.stopPropagation(),
+};
+
+export function ApplicationCard({ app, onEdit, onDelete, onView, onMove }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: matchData } = useMatches();
   const liveMatch = matchData?.matches?.[app.id];
@@ -37,7 +46,7 @@ export function ApplicationCard({ app, onEdit, onDelete, onView }: Props) {
       style={style}
       data-card="true"
       onClick={() => onView?.(app)}
-      className="group bg-surface-elevated border border-border-subtle rounded-xl p-4 hover:border-border transition-colors cursor-pointer active:cursor-grabbing"
+      className="group bg-surface-elevated border border-border-subtle rounded-xl p-4 hover:border-border transition-colors cursor-pointer active:cursor-grabbing select-none [-webkit-touch-callout:none]"
       {...attributes}
       {...listeners}
     >
@@ -52,8 +61,8 @@ export function ApplicationCard({ app, onEdit, onDelete, onView }: Props) {
               e.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="p-1 rounded text-ink-muted hover:text-ink-primary hover:bg-surface-subtle opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+            {...stopDrag}
+            className="p-1 rounded text-ink-muted hover:text-ink-primary hover:bg-surface-subtle transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100"
             aria-label="Card menu"
           >
             <MoreVertical className="h-4 w-4" />
@@ -62,13 +71,38 @@ export function ApplicationCard({ app, onEdit, onDelete, onView }: Props) {
             <>
               <div
                 className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                }}
+                {...stopDrag}
               />
               <div
-                className="absolute right-0 mt-1 w-32 bg-surface-elevated border border-border rounded-md shadow-elevated z-20 py-1 text-sm"
-                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute right-0 mt-1 w-44 bg-surface-elevated border border-border rounded-md shadow-elevated z-20 py-1 text-sm"
+                onClick={(e) => e.stopPropagation()}
+                {...stopDrag}
               >
+                {onMove && (
+                  <>
+                    <div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+                      Move to
+                    </div>
+                    {STATUSES.filter((s) => s !== app.status).map((s) => (
+                      <button
+                        key={s}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-subtle"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          onMove(app, s);
+                        }}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[s]}`} />
+                        {s}
+                      </button>
+                    ))}
+                    <div className="my-1 border-t border-border-subtle" />
+                  </>
+                )}
                 <button
                   className="block w-full px-3 py-1.5 text-left hover:bg-surface-subtle"
                   onClick={(e) => {
@@ -104,7 +138,7 @@ export function ApplicationCard({ app, onEdit, onDelete, onView }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-accent transition-colors mb-2"
-            onPointerDown={(e) => e.stopPropagation()}
+            {...stopDrag}
             onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink className="h-3 w-3" />

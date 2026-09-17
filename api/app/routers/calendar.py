@@ -7,14 +7,16 @@ Events on the calendar come from two sources:
 Nudges are not persisted — they're recomputed on every request based on the
 current state of the user's applications and their existing reminders.
 """
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..auth import User, get_current_user
 from ..db import applications_collection, reminders_collection
+from ..models import _alias
+from ..timeline import applied_at, entered_at, history_for, parse_date_applied
 
 router = APIRouter(
     prefix="/api/calendar",
@@ -24,6 +26,8 @@ router = APIRouter(
 
 
 class CalendarEvent(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=_alias)
+
     id: str
     source: str  # 'reminder' | 'application'
     kind: str  # reminder kind, or 'application' for app milestones
@@ -36,21 +40,16 @@ class CalendarEvent(BaseModel):
 
 
 class Nudge(BaseModel):
+    # camelCase on the wire like every other model — the frontend reads
+    # `applicationId` / `suggestedDueAt`.
+    model_config = ConfigDict(populate_by_name=True, alias_generator=_alias)
+
     id: str  # deterministic so the UI can dedupe across refreshes
     kind: str  # the kind a materialized reminder would have
     title: str
     reason: str
     suggested_due_at: datetime
     application_id: str
-
-
-def _parse_date_applied(value: Optional[str]) -> Optional[datetime]:
-    if not value:
-        return None
-    try:
-        return datetime.combine(date.fromisoformat(value), time(9, 0), tzinfo=timezone.utc)
-    except ValueError:
-        return None
 
 
 @router.get("/events", response_model=list[CalendarEvent])
@@ -88,7 +87,7 @@ async def list_events(
         )
 
     async for a in applications_collection().find({"owner_id": user.sub}):
-        start = _parse_date_applied(a.get("date_applied"))
+        start = parse_date_applied(a.get("date_applied"))
         if start is None:
             continue
         if range_from and start < range_from:
@@ -124,6 +123,9 @@ async def list_nudges(user: User = Depends(get_current_user)):
     for r in rems:
         if r.get("application_id") and not r.get("completed", False):
             existing.add((r["application_id"], r.get("kind", "task")))
+    # Nudges already turned into a reminder stay hidden for good — even once that
+    # reminder is completed — so the same suggestion doesn't keep coming back.
+    added = {r["nudge_id"] for r in rems if r.get("nudge_id")}
 
     nudges: list[Nudge] = []
 
@@ -131,7 +133,7 @@ async def list_nudges(user: User = Depends(get_current_user)):
         status_ = app.get("status")
         app_id = str(app["_id"])
         company = app.get("company_name", "this role")
-        applied = _parse_date_applied(app.get("date_applied")) or app.get("created_at")
+        applied = applied_at(app)
         if applied is None:
             continue
         days_since = (now - applied).days
@@ -148,13 +150,16 @@ async def list_nudges(user: User = Depends(get_current_user)):
                 )
             )
 
-        if status_ == "Interview" and days_since >= 5 and (app_id, "follow_up") not in existing:
+        # Measure from when it actually moved to Interview, not from the applied date.
+        in_interview_since = entered_at(history_for(app), "Interview") or applied
+        days_in_interview = (now - in_interview_since).days
+        if status_ == "Interview" and days_in_interview >= 5 and (app_id, "follow_up") not in existing:
             nudges.append(
                 Nudge(
                     id=f"nudge-thank-you-{app_id}",
                     kind="follow_up",
                     title=f"Send thank-you to {company}",
-                    reason=f"Your last touchpoint was {days_since} days ago.",
+                    reason=f"Your last touchpoint was {days_in_interview} days ago.",
                     suggested_due_at=now + timedelta(hours=4),
                     application_id=app_id,
                 )
@@ -172,4 +177,4 @@ async def list_nudges(user: User = Depends(get_current_user)):
                 )
             )
 
-    return nudges
+    return [n for n in nudges if n.id not in added]

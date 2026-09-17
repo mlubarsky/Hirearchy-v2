@@ -43,6 +43,13 @@ async def ensure_indexes() -> None:
     rems = reminders_collection()
     await rems.create_index([("owner_id", 1), ("order_index", 1)])
     await rems.create_index([("owner_id", 1), ("due_at", 1)])
+    # A smart nudge can become a reminder only once. Partial so ordinary
+    # reminders (no nudge_id) aren't constrained.
+    await rems.create_index(
+        [("owner_id", 1), ("nudge_id", 1)],
+        unique=True,
+        partialFilterExpression={"nudge_id": {"$type": "string"}},
+    )
 
     ach = achievements_collection()
     await ach.create_index([("owner_id", 1), ("code", 1)], unique=True)

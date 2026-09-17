@@ -5,6 +5,17 @@ from fastapi import APIRouter, Depends
 
 from ..auth import User, get_current_user
 from ..db import applications_collection
+from ..timeline import (
+    APPLIED,
+    applied_at,
+    days_between,
+    entered_at,
+    first_response_at,
+    history_for,
+)
+
+# An application with no response after this many days counts as "no response".
+GHOSTED_AFTER_DAYS = 21
 
 router = APIRouter(
     prefix="/api/analytics",
@@ -34,11 +45,44 @@ async def summary(user: User = Depends(get_current_user)) -> dict:
         count = sum(1 for d in docs if start <= d.get("created_at", now) < end)
         weeks.append({"weekEnding": end.date().isoformat(), "count": count})
 
+    # Timing, from each application's status timeline. Transitions with an
+    # unknown date (pre-timeline data) are left out rather than guessed.
+    response_days: list[float] = []
+    decision_days: list[float] = []
+    ghosted = 0
+    for d in docs:
+        history = history_for(d)
+        applied = applied_at(d)
+        days = days_between(applied, first_response_at(history))
+        if days is not None:
+            response_days.append(days)
+        if d.get("status") in ("Offer", "Rejected"):
+            days = days_between(entered_at(history, "Interview"), entered_at(history, d["status"]))
+            if days is not None:
+                decision_days.append(days)
+        if (
+            d.get("status", APPLIED) == APPLIED
+            and applied is not None
+            and now - applied >= timedelta(days=GHOSTED_AFTER_DAYS)
+        ):
+            ghosted += 1
+
+    def _avg(values: list[float]) -> float | None:
+        return round(sum(values) / len(values), 1) if values else None
+
     return {
         "total": total,
         "byStatus": [{"status": s, "count": c} for s, c in by_status.items()],
         "responseRate": response_rate,
         "weekly": weeks,
+        "timing": {
+            "avgDaysToResponse": _avg(response_days),
+            "responsesMeasured": len(response_days),
+            "avgDaysInterviewToDecision": _avg(decision_days),
+            "decisionsMeasured": len(decision_days),
+            "noResponseCount": ghosted,
+            "noResponseAfterDays": GHOSTED_AFTER_DAYS,
+        },
     }
 
 

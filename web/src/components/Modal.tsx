@@ -8,9 +8,26 @@ type Props = {
   title: string;
   children: React.ReactNode;
   maxWidth?: string;
+  /** Pinned below the scrollable body (e.g. action buttons). */
+  footer?: React.ReactNode;
+  /**
+   * Give the dialog a fixed height that fits the viewport (capped on tall
+   * screens) and scroll the body inside it, so the page never scrolls. A
+   * minimum height keeps it usable on very short screens — below that, the
+   * overlay scrolls instead.
+   */
+  fixedHeight?: boolean;
 };
 
-export function Modal({ open, onClose, title, children, maxWidth = "max-w-xl" }: Props) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  maxWidth = "max-w-xl",
+  footer,
+  fixedHeight = false,
+}: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,10 +53,14 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-xl" }:
       onClick={onClose}
     >
       <div
-        className={`glass rounded-2xl shadow-elevated w-full ${maxWidth} animate-slide-up my-auto`}
+        className={`glass rounded-2xl shadow-elevated w-full ${maxWidth} animate-slide-up my-auto ${
+          fixedHeight
+            ? "flex flex-col h-[calc(100dvh-1.5rem)] sm:h-[calc(100dvh-4rem)] max-h-[48rem] min-h-[24rem]"
+            : ""
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border-subtle">
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border-subtle">
           <h2 className="text-base sm:text-lg font-semibold truncate pr-2">{title}</h2>
           <button
             onClick={onClose}
@@ -49,7 +70,14 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-xl" }:
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-4 sm:px-6 py-4 sm:py-5">{children}</div>
+        <div
+          className={`px-4 sm:px-6 py-4 sm:py-5 ${fixedHeight ? "flex-1 min-h-0 overflow-y-auto" : ""}`}
+        >
+          {children}
+        </div>
+        {footer && (
+          <div className="shrink-0 px-4 sm:px-6 py-3 border-t border-border-subtle">{footer}</div>
+        )}
       </div>
     </div>,
     document.body,

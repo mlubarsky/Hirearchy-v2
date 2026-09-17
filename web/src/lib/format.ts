@@ -14,11 +14,26 @@ export const STATUS_DOT: Record<ApplicationStatus, string> = {
   Rejected: "bg-status-rejected",
 };
 
+// A bare "YYYY-MM-DD" (e.g. dateApplied) is a calendar day, not an instant.
+// `new Date("2026-09-16")` would parse it as UTC midnight — the previous evening
+// in the Americas — so build it as local midnight instead.
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function parseDate(iso: string): Date {
+  const m = DATE_ONLY.exec(iso);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
+}
+
+function startOfLocalDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
 export function formatRelativeDate(iso: string | null | undefined): string {
   if (!iso) return "";
-  const d = new Date(iso);
+  const d = parseDate(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  // Count calendar days in the user's timezone, so anything from today reads "today".
+  const days = Math.round((startOfLocalDay(new Date()) - startOfLocalDay(d)) / 86_400_000);
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   if (days < 7) return `${days}d ago`;
@@ -27,9 +42,13 @@ export function formatRelativeDate(iso: string | null | undefined): string {
   return d.toLocaleDateString();
 }
 
+/** Today's date in the user's local timezone as YYYY-MM-DD. (`toISOString()` is
+ *  UTC, which is already "tomorrow" on US evenings.) */
 export function todayIso(): string {
   const d = new Date();
-  return d.toISOString().slice(0, 10);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 // Kind palette — distinct from STATUS palette so the eye can separate

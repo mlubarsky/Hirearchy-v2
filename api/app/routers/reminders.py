@@ -4,6 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, HTTPException, status
 from pymongo import UpdateOne
+from pymongo.errors import DuplicateKeyError
 
 from ..auth import User, get_current_user
 from ..db import reminders_collection
@@ -54,7 +55,12 @@ async def create_reminder(
         "application_id": payload.application_id,
         "created_at": datetime.now(timezone.utc),
     }
-    result = await coll.insert_one(doc)
+    if payload.nudge_id:
+        doc["nudge_id"] = payload.nudge_id
+    try:
+        result = await coll.insert_one(doc)
+    except DuplicateKeyError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This nudge is already in your reminders") from exc
     doc["_id"] = result.inserted_id
     return _serialize(doc)
 

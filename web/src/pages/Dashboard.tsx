@@ -6,13 +6,14 @@ import {
   LayoutGrid,
   LogOut,
   type LucideIcon,
+  Menu,
   Plus,
   Search,
   Settings,
   Trophy,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -65,6 +66,7 @@ export function Dashboard() {
   const [addingStatus, setAddingStatus] = useState<ApplicationStatus | null>(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [stalledDismissed, setStalledDismissed] = useState<boolean>(() => {
     try {
       return localStorage.getItem(STALLED_DISMISS_KEY) === "1";
@@ -72,6 +74,15 @@ export function Dashboard() {
       return false;
     }
   });
+
+  useEffect(() => {
+    if (!navMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setNavMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navMenuOpen]);
+
+  const currentTab = TABS.find((t) => t.key === tab) ?? TABS[0];
 
   function dismissStalled() {
     setStalledDismissed(true);
@@ -94,9 +105,13 @@ export function Dashboard() {
 
   const stalledInterviews = useMemo(() => {
     const cutoff = Date.now() - 14 * 86_400_000;
-    return apps.filter(
-      (a) => a.status === "Interview" && new Date(a.createdAt).getTime() < cutoff,
-    ).length;
+    return apps.filter((a) => {
+      if (a.status !== "Interview") return false;
+      // When it most recently moved to Interview; fall back to creation for
+      // pre-timeline entries whose transition date is unknown.
+      const entered = [...(a.statusHistory ?? [])].reverse().find((e) => e.status === "Interview")?.at;
+      return new Date(entered ?? a.createdAt).getTime() < cutoff;
+    }).length;
   }, [apps]);
 
   return (
@@ -113,10 +128,55 @@ export function Dashboard() {
             <Logo size={26} />
           </div>
 
+          {/* Very narrow screens (<320px): the five tab icons plus the account icons
+              need ~308px, so the tabs collapse into a menu showing the current tab. */}
+          <div className="hidden max-[319px]:flex items-center relative min-w-0">
+            <button
+              type="button"
+              onClick={() => setNavMenuOpen((v) => !v)}
+              aria-label="Open navigation"
+              aria-expanded={navMenuOpen}
+              aria-haspopup="menu"
+              className="inline-flex items-center gap-1.5 h-9 px-2 rounded-lg text-sm font-medium text-ink-primary hover:bg-surface-elevated transition-colors min-w-0"
+            >
+              <Menu className="h-4 w-4 shrink-0" />
+              <span className="truncate">{currentTab.label}</span>
+            </button>
+            {navMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNavMenuOpen(false)} aria-hidden />
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full mt-1 z-50 w-44 py-1 rounded-lg border border-border bg-surface-elevated shadow-elevated"
+                >
+                  {TABS.map(({ key, label, Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setTab(key);
+                        setNavMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
+                        tab === key
+                          ? "text-ink-primary bg-surface-subtle"
+                          : "text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${tab === key ? "text-accent" : ""}`} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Tabs: icon-only below md (spread evenly on mobile), icon + label at
               md+. Full row height so the active underline sits on the
-              header's bottom border. */}
-          <div className="flex flex-1 sm:flex-none gap-1 -mb-px min-w-0 overflow-x-auto scrollbar-hide">
+              header's bottom border. Hidden below 320px (menu above instead). */}
+          <div className="flex max-[319px]:hidden flex-1 sm:flex-none gap-1 -mb-px min-w-0 overflow-x-auto scrollbar-hide">
             {TABS.map(({ key, label, Icon }) => (
               <button
                 key={key}

@@ -63,6 +63,19 @@ export function useUpdateApplication() {
   });
 }
 
+/** Correct when a timeline entry happened. `index` is its position in statusHistory. */
+export function useUpdateStatusDate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, index, at }: { id: string; index: number; at: string }) =>
+      apiFetch<JobApplication>(`/api/applications/${id}/history/${index}`, {
+        method: "PUT",
+        body: JSON.stringify({ at }),
+      }),
+    onSuccess: () => invalidateDependents(qc),
+  });
+}
+
 export function useDeleteApplication() {
   const qc = useQueryClient();
   return useMutation({
